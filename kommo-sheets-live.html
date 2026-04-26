@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kommo CRM — Painel Executivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4f6fb;
+  --white: #ffffff;
+  --border: #e4e8f0;
+  --text: #0f1623;
+  --muted: #8892a4;
+  --green: #00c97a;
+  --green-bg: #e6faf2;
+  --blue: #3b7fff;
+  --blue-bg: #eaf0ff;
+  --orange: #ff7a3d;
+  --orange-bg: #fff0e9;
+  --purple: #8b5cf6;
+  --purple-bg: #f0ebff;
+  --red: #f43f5e;
+  --red-bg: #fff0f3;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; }
+
+header {
+  background:var(--white); border-bottom:1px solid var(--border);
+  padding:0 28px; height:64px; display:flex; align-items:center;
+  justify-content:space-between; position:sticky; top:0; z-index:50;
+  box-shadow:var(--shadow);
+}
+.hd-left { display:flex; align-items:center; gap:14px; }
+.logo-mark {
+  width:38px; height:38px;
+  background:linear-gradient(135deg,#00c97a,#00a862);
+  border-radius:10px; display:grid; place-items:center;
+  box-shadow:0 2px 8px rgba(0,201,122,0.35);
+}
+.logo-mark svg { width:20px; height:20px; }
+.hd-title { font-weight:700; font-size:16px; }
+.hd-title span { color:var(--green); }
+.hd-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.hd-right { display:flex; align-items:center; gap:12px; }
+.live-pill {
+  display:flex; align-items:center; gap:6px;
+  background:var(--green-bg); color:#00a862;
+  font-size:11px; font-weight:600; padding:5px 12px;
+  border-radius:20px; border:1px solid rgba(0,201,122,0.2);
+}
+.live-dot { width:7px; height:7px; background:var(--green); border-radius:50%; animation:blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+.clock { font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+.refresh-btn {
+  padding:6px 14px; border:1px solid var(--border); border-radius:8px;
+  background:var(--white); font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:12px; font-weight:600; cursor:pointer; color:var(--text);
+  transition:all 0.15s; display:flex; align-items:center; gap:6px;
+}
+.refresh-btn:hover { background:var(--bg); border-color:var(--green); color:var(--green); }
+
+/* STATUS BAR */
+.status-bar {
+  background:var(--blue-bg); border-bottom:1px solid #c8dcff;
+  padding:8px 28px; font-size:12px; color:var(--blue);
+  display:flex; align-items:center; gap:8px; font-weight:500;
+}
+.status-bar.error { background:var(--red-bg); border-color:#ffc8d0; color:var(--red); }
+.status-bar.success { background:var(--green-bg); border-color:#b8f0d8; color:#00a862; }
+
+main { padding:24px 28px; max-width:1440px; margin:0 auto; }
+
+/* LOADING */
+.loading-overlay {
+  position:fixed; inset:0; background:rgba(244,246,251,0.95);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:999; gap:16px;
+}
+.loading-spinner {
+  width:48px; height:48px; border:4px solid var(--border);
+  border-top-color:var(--green); border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.loading-text { font-weight:600; color:var(--muted); font-size:14px; }
+
+.section-hd {
+  font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:1.2px; color:var(--muted); margin-bottom:14px; margin-top:24px;
+}
+.section-hd:first-child { margin-top:0; }
+
+/* KPI */
+.kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:6px; }
+.kpi {
+  background:var(--white); border:1px solid var(--border); border-radius:16px;
+  padding:20px 22px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+  transition:transform 0.15s, box-shadow 0.15s; cursor:default;
+}
+.kpi:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+.kpi-icon { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; margin-bottom:14px; font-size:18px; }
+.kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); margin-bottom:6px; }
+.kpi-value { font-size:28px; font-weight:800; color:var(--text); line-height:1; margin-bottom:10px; letter-spacing:-0.5px; }
+.kpi-value .prefix { font-size:14px; font-weight:600; color:var(--muted); margin-right:2px; }
+.kpi-footer { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+.delta { display:inline-flex; align-items:center; gap:3px; font-weight:700; font-size:12px; padding:2px 7px; border-radius:6px; }
+.delta.up { color:#00a862; background:var(--green-bg); }
+.delta.down { color:var(--red); background:var(--red-bg); }
+.kpi-bg { position:absolute; right:-8px; bottom:-8px; font-size:72px; opacity:0.06; pointer-events:none; line-height:1; }
+
+/* LEADS PERIOD */
+.leads-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:6px; }
+.lp-card {
+  background:var(--white); border:1px solid var(--border); border-radius:16px;
+  padding:20px 22px; box-shadow:var(--shadow); display:flex; align-items:center; gap:18px;
+}
+.lp-badge {
+  width:56px; height:56px; border-radius:14px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-weight:800; font-size:10px;
+  text-transform:uppercase; letter-spacing:0.5px; line-height:1.3; text-align:center; flex-shrink:0;
+}
+.lp-info { flex:1; }
+.lp-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); margin-bottom:4px; }
+.lp-num { font-size:38px; font-weight:800; letter-spacing:-1px; line-height:1; margin-bottom:6px; }
+.lp-sub { font-size:12px; color:var(--muted); }
+
+/* MAIN GRID */
+.main-grid { display:grid; grid-template-columns:1fr 340px; gap:14px; margin-bottom:14px; }
+.card { background:var(--white); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:var(--shadow); }
+.card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.card-title { font-weight:700; font-size:15px; }
+.card-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.chip { font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px; }
+
+/* CHART */
+.chart-container { position:relative; height:200px; }
+.chart-grid { position:absolute; inset:0; bottom:28px; display:flex; flex-direction:column; justify-content:space-between; pointer-events:none; }
+.grid-line { border-top:1px dashed var(--border); position:relative; }
+.grid-lbl { position:absolute; right:0; top:-10px; font-size:9px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+.bars-row { position:absolute; inset:0; bottom:28px; display:flex; align-items:flex-end; gap:8px; padding:0 2px; }
+.bar-col { flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; cursor:pointer; position:relative; }
+.bar-col:hover .bar-body { opacity:0.8; }
+.bar-col:hover .bar-tip { opacity:1; transform:translateX(-50%) translateY(-4px); }
+.bar-body { width:100%; border-radius:6px 6px 0 0; transition:height 0.8s cubic-bezier(0.34,1.56,0.64,1); min-height:3px; }
+.bar-tip {
+  position:absolute; top:-36px; left:50%; transform:translateX(-50%);
+  background:var(--text); color:#fff; font-size:10px; font-weight:600;
+  padding:4px 8px; border-radius:6px; white-space:nowrap;
+  opacity:0; transition:all 0.15s; pointer-events:none;
+  font-family:'JetBrains Mono',monospace;
+}
+.bar-tip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:4px solid transparent; border-top-color:var(--text); }
+.bar-xlabel { position:absolute; bottom:-22px; font-size:10px; color:var(--muted); font-weight:500; white-space:nowrap; }
+
+/* SELLERS */
+.sellers { display:flex; flex-direction:column; gap:8px; }
+.seller { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; border:1px solid transparent; transition:all 0.15s; cursor:default; }
+.seller:hover { background:var(--bg); border-color:var(--border); }
+.seller.rank1 { background:linear-gradient(135deg,rgba(0,201,122,0.06),rgba(0,201,122,0.02)); border-color:rgba(0,201,122,0.2); }
+.rank-num { font-weight:800; font-size:12px; color:var(--muted); width:18px; text-align:center; flex-shrink:0; }
+.seller.rank1 .rank-num { color:var(--green); }
+.seller-av { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:12px; flex-shrink:0; }
+.seller-mid { flex:1; min-width:0; }
+.seller-name { font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px; }
+.seller-prog { height:4px; background:var(--border); border-radius:99px; overflow:hidden; }
+.seller-fill { height:100%; border-radius:99px; transition:width 1s ease; }
+.seller-right { text-align:right; flex-shrink:0; }
+.seller-val { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; }
+.seller-deals { font-size:10px; color:var(--muted); margin-top:2px; }
+
+/* BOTTOM */
+.bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+/* FUNNEL */
+.funnel { display:flex; flex-direction:column; gap:8px; }
+.funnel-row { display:flex; align-items:center; gap:10px; }
+.funnel-lbl { font-size:11px; font-weight:500; color:var(--muted); width:120px; flex-shrink:0; text-transform:uppercase; letter-spacing:0.4px; }
+.funnel-track { flex:1; height:28px; background:var(--bg); border-radius:6px; overflow:hidden; border:1px solid var(--border); }
+.funnel-fill { height:100%; border-radius:6px; display:flex; align-items:center; padding:0 10px; font-size:11px; font-weight:700; color:white; transition:width 1.2s ease; }
+.funnel-n { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; width:36px; text-align:right; flex-shrink:0; }
+
+/* CHANNEL */
+.ch-table { width:100%; border-collapse:collapse; }
+.ch-table th { font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); font-weight:600; text-align:left; padding:0 0 10px; border-bottom:1px solid var(--border); }
+.ch-table td { padding:9px 0; font-size:12px; border-bottom:1px solid rgba(0,0,0,0.04); vertical-align:middle; }
+.ch-table tr:last-child td { border-bottom:none; }
+.ch-source { display:inline-flex; align-items:center; gap:7px; }
+.ch-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.ch-trend { font-size:11px; font-weight:700; padding:2px 7px; border-radius:5px; }
+
+footer { text-align:center; padding:20px; font-size:11px; color:var(--muted); border-top:1px solid var(--border); margin-top:8px; background:var(--white); }
+footer strong { color:var(--green); }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)} }
+.kpi { animation:fadeUp 0.4s ease both; }
+.kpi:nth-child(1){animation-delay:0.05s}
+.kpi:nth-child(2){animation-delay:0.10s}
+.kpi:nth-child(3){animation-delay:0.15s}
+.kpi:nth-child(4){animation-delay:0.20s}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Conectando ao Google Sheets...</div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="hd-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 20 20" fill="white"><path d="M10 2L2 7v6l8 5 8-5V7L10 2zm0 2.3L16 8v4l-6 3.7L4 12V8l6-3.7z"/></svg>
+    </div>
+    <div>
+      <div class="hd-title">Kommo <span>CRM</span> — Painel Executivo</div>
+      <div class="hd-sub">Dados em tempo real via Google Sheets</div>
+    </div>
+  </div>
+  <div class="hd-right">
+    <div class="live-pill"><div class="live-dot"></div> Ao vivo</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <button class="refresh-btn" onclick="loadData()">🔄 Atualizar</button>
+  </div>
+</header>
+
+<!-- STATUS -->
+<div class="status-bar" id="status-bar">
+  🔄 Buscando dados da planilha...
+</div>
+
+<main>
+  <!-- KPIs -->
+  <div class="section-hd">Visão geral</div>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-icon" style="background:var(--green-bg)">💰</div>
+      <div class="kpi-label">Faturamento Total</div>
+      <div class="kpi-value"><span class="prefix">R$</span><span id="v-fat">--</span></div>
+      <div class="kpi-footer"><span id="d-fat" class="delta up">--</span> vs período anterior</div>
+      <div class="kpi-bg">💰</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon" style="background:var(--blue-bg)">📥</div>
+      <div class="kpi-label">Total de Leads</div>
+      <div class="kpi-value"><span id="v-leads">--</span></div>
+      <div class="kpi-footer"><span id="d-leads" class="delta up">--</span> esta semana</div>
+      <div class="kpi-bg">📥</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon" style="background:var(--orange-bg)">🎯</div>
+      <div class="kpi-label">Negócios Ganhos</div>
+      <div class="kpi-value"><span id="v-ganhos">--</span></div>
+      <div class="kpi-footer"><span id="d-ganhos" class="delta up">--</span> conversão</div>
+      <div class="kpi-bg">🎯</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon" style="background:var(--purple-bg)">🧾</div>
+      <div class="kpi-label">Ticket Médio</div>
+      <div class="kpi-value"><span class="prefix">R$</span><span id="v-ticket">--</span></div>
+      <div class="kpi-footer"><span style="color:var(--muted)">por negócio fechado</span></div>
+      <div class="kpi-bg">🧾</div>
+    </div>
+  </div>
+
+  <!-- LEADS POR PERÍODO -->
+  <div class="section-hd">Leads por período</div>
+  <div class="leads-grid">
+    <div class="lp-card">
+      <div class="lp-badge" style="background:var(--blue-bg);color:var(--blue)">
+        <span style="font-size:22px">📅</span><span>Hoje</span>
+      </div>
+      <div class="lp-info">
+        <div class="lp-label">Leads hoje</div>
+        <div class="lp-num" style="color:var(--blue)" id="lp-dia">--</div>
+        <div class="lp-sub" id="lp-dia-sub">carregando...</div>
+      </div>
+    </div>
+    <div class="lp-card">
+      <div class="lp-badge" style="background:var(--green-bg);color:var(--green)">
+        <span style="font-size:22px">📆</span><span>Semana</span>
+      </div>
+      <div class="lp-info">
+        <div class="lp-label">Leads esta semana</div>
+        <div class="lp-num" style="color:var(--green)" id="lp-sem">--</div>
+        <div class="lp-sub" id="lp-sem-sub">carregando...</div>
+      </div>
+    </div>
+    <div class="lp-card">
+      <div class="lp-badge" style="background:var(--purple-bg);color:var(--purple)">
+        <span style="font-size:22px">🗓️</span><span>Mês</span>
+      </div>
+      <div class="lp-info">
+        <div class="lp-label">Leads este mês</div>
+        <div class="lp-num" style="color:var(--purple)" id="lp-mes">--</div>
+        <div class="lp-sub" id="lp-mes-sub">carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART + SELLERS -->
+  <div class="section-hd">Faturamento & Vendedores</div>
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Faturamento por Vendedor</div>
+          <div class="card-sub">Total acumulado da planilha</div>
+        </div>
+        <span class="chip" style="background:var(--green-bg);color:var(--green)">Vendas</span>
+      </div>
+      <div class="chart-container">
+        <div class="chart-grid">
+          <div class="grid-line"><span class="grid-lbl" id="gl3"></span></div>
+          <div class="grid-line"><span class="grid-lbl" id="gl2"></span></div>
+          <div class="grid-line"><span class="grid-lbl" id="gl1"></span></div>
+          <div class="grid-line"></div>
+        </div>
+        <div class="bars-row" id="bars-row"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Ranking de Vendedores</div>
+          <div class="card-sub">Quem vendeu mais</div>
+        </div>
+        <span class="chip" style="background:var(--orange-bg);color:var(--orange)">Top 5</span>
+      </div>
+      <div class="sellers" id="sellers-list">
+        <div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Carregando...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="section-hd">Funil & Canais</div>
+  <div class="bottom-grid">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Funil de Vendas</div>
+          <div class="card-sub">Etapas dos leads</div>
+        </div>
+        <span class="chip" style="background:var(--blue-bg);color:var(--blue)">Kommo</span>
+      </div>
+      <div class="funnel" id="funnel">
+        <div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Carregando...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Leads por Canal</div>
+          <div class="card-sub">Origem dos contatos</div>
+        </div>
+      </div>
+      <table class="ch-table">
+        <thead>
+          <tr><th>Canal</th><th>Leads</th><th>%</th></tr>
+        </thead>
+        <tbody id="canal-tbody">
+          <tr><td colspan="3" style="color:var(--muted);text-align:center;padding:20px 0">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Painel conectado à planilha <strong>Google Sheets</strong> · Atualiza automaticamente via <strong>Make + Kommo Webhooks</strong>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════
+// SUA PLANILHA — ID configurado automaticamente
+// ══════════════════════════════════════════════
+const SHEET_ID = '11I0y3bh7GkRTJdcPPBxayI6-PnhVpTkqZaCquTFFoKM';
+const API_KEY  = ''; // deixe vazio — usamos acesso público
+
+// Nomes das abas (ajuste se usar nomes diferentes)
+const ABA_LEADS     = 'leads';
+const ABA_VENDAS    = 'vendas';
+const ABA_ATIVIDADES = 'atividades';
+
+const CORES = ['#00c97a','#3b7fff','#f59e0b','#8b5cf6','#f43f5e'];
+const CANAIS_CORES = {
+  'whatsapp':'#25d366','instagram':'#e1306c','site':'#3b7fff',
+  'facebook':'#1877f2','forms':'#3b7fff','outros':'#8892a4'
+};
+
+// ── CLOCK ────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('pt-BR');
+}, 1000);
+
+// ── BUSCAR ABA ───────────────────────────────
+async function fetchSheet(aba) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(aba)}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);/)[1]);
+  const cols = json.table.cols.map(c => c.label.toLowerCase().trim());
+  const rows = (json.table.rows || []).map(r =>
+    Object.fromEntries(cols.map((c, i) => [c, r.c[i]?.v ?? '']))
+  );
+  return rows;
+}
+
+// ── PARSE DATA ───────────────────────────────
+function parseDate(v) {
+  if (!v) return null;
+  if (typeof v === 'string') {
+    const d = new Date(v);
+    return isNaN(d) ? null : d;
+  }
+  // Google Sheets date serial
+  if (typeof v === 'number') {
+    return new Date((v - 25569) * 86400 * 1000);
+  }
+  return null;
+}
+
+function startOf(unit) {
+  const n = new Date();
+  if (unit === 'day') { n.setHours(0,0,0,0); return n; }
+  if (unit === 'week') { const d = new Date(n); d.setHours(0,0,0,0); d.setDate(d.getDate() - d.getDay()); return d; }
+  if (unit === 'month') { return new Date(n.getFullYear(), n.getMonth(), 1); }
+}
+
+function fmt(v) {
+  if (v >= 1000000) return (v/1000000).toFixed(1) + 'M';
+  if (v >= 1000) return (v/1000).toFixed(1).replace('.0','') + 'k';
+  return v.toString();
+}
+
+function fmtBRL(v) {
+  return Number(v).toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+// ── STATUS BAR ───────────────────────────────
+function setStatus(msg, type='info') {
+  const el = document.getElementById('status-bar');
+  el.className = 'status-bar' + (type==='error'?' error':type==='success'?' success':'');
+  el.textContent = msg;
+}
+
+// ── RENDER SELLERS ───────────────────────────
+function renderSellers(vendas) {
+  const map = {};
+  vendas.forEach(v => {
+    const nome = (v.vendedor||'Sem nome').trim();
+    const val = parseFloat(String(v.valor||'0').replace(/[^\d.,]/g,'').replace(',','.')) || 0;
+    if (!map[nome]) map[nome] = {val:0, deals:0};
+    map[nome].val += val;
+    map[nome].deals++;
+  });
+
+  const sorted = Object.entries(map).sort((a,b) => b[1].val - a[1].val).slice(0,5);
+  const maxVal = sorted[0]?.[1]?.val || 1;
+
+  // Barras do gráfico
+  const barsEl = document.getElementById('bars-row');
+  barsEl.innerHTML = '';
+  const topBars = sorted.slice(0,6);
+  const gMax = maxVal;
+  document.getElementById('gl3').textContent = 'R$ '+fmt(gMax);
+  document.getElementById('gl2').textContent = 'R$ '+fmt(gMax*0.66);
+  document.getElementById('gl1').textContent = 'R$ '+fmt(gMax*0.33);
+
+  topBars.forEach(([ nome, data ], i) => {
+    const pct = (data.val / gMax) * 100;
+    const initials = nome.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+    const div = document.createElement('div');
+    div.className = 'bar-col';
+    div.innerHTML = `
+      <div class="bar-tip">R$ ${fmtBRL(data.val)}</div>
+      <div class="bar-body" style="height:${pct}%; background:${i===0?'#00c97a':CORES[i]||'#d1eaf7'}"></div>
+      <div class="bar-xlabel">${initials}</div>`;
+    barsEl.appendChild(div);
+  });
+
+  // Lista ranking
+  const sEl = document.getElementById('sellers-list');
+  if (sorted.length === 0) {
+    sEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Nenhuma venda encontrada na aba "vendas"</div>';
+    return;
+  }
+  sEl.innerHTML = '';
+  sorted.forEach(([nome, data], i) => {
+    const pct = (data.val / maxVal) * 100;
+    const cor = CORES[i] || '#8892a4';
+    const initials = nome.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+    sEl.innerHTML += `
+      <div class="seller ${i===0?'rank1':''}">
+        <div class="rank-num">${i+1}</div>
+        <div class="seller-av" style="background:${cor}22;color:${cor}">${initials}</div>
+        <div class="seller-mid">
+          <div class="seller-name">${nome}</div>
+          <div class="seller-prog"><div class="seller-fill" style="width:${pct}%;background:${cor}"></div></div>
+        </div>
+        <div class="seller-right">
+          <div class="seller-val">R$ ${fmtBRL(data.val)}</div>
+          <div class="seller-deals">${data.deals} negócio(s)</div>
+        </div>
+      </div>`;
+  });
+}
+
+// ── RENDER FUNNEL ────────────────────────────
+function renderFunnel(leads) {
+  const etapas = {};
+  leads.forEach(l => {
+    const e = (l.etapa||l.stage||l.status||'Sem etapa').trim();
+    etapas[e] = (etapas[e]||0) + 1;
+  });
+
+  const sorted = Object.entries(etapas).sort((a,b) => b[1]-a[1]);
+  const maxN = sorted[0]?.[1] || 1;
+  const fCores = ['#3b7fff','#00c97a','#f59e0b','#8b5cf6','#f43f5e','#06b6d4'];
+
+  const el = document.getElementById('funnel');
+  if (sorted.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center">Nenhum dado encontrado na aba "leads"</div>';
+    return;
+  }
+  el.innerHTML = '';
+  sorted.forEach(([etapa, n], i) => {
+    const pct = Math.round((n/maxN)*100);
+    el.innerHTML += `
+      <div class="funnel-row">
+        <div class="funnel-lbl">${etapa.slice(0,16)}</div>
+        <div class="funnel-track">
+          <div class="funnel-fill" style="width:${pct}%;background:${fCores[i%fCores.length]}">${pct}%</div>
+        </div>
+        <div class="funnel-n">${n}</div>
+      </div>`;
+  });
+}
+
+// ── RENDER CANAIS ────────────────────────────
+function renderCanais(leads) {
+  const canais = {};
+  leads.forEach(l => {
+    const c = (l.canal||l.source||l.origem||'Outros').trim().toLowerCase();
+    canais[c] = (canais[c]||0) + 1;
+  });
+
+  const total = Object.values(canais).reduce((a,b)=>a+b,0) || 1;
+  const sorted = Object.entries(canais).sort((a,b)=>b[1]-a[1]);
+
+  const tbody = document.getElementById('canal-tbody');
+  if (sorted.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:20px 0">Sem dados de canal</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  sorted.forEach(([canal, n]) => {
+    const pct = Math.round((n/total)*100);
+    const cor = CANAIS_CORES[canal] || '#8892a4';
+    const label = canal.charAt(0).toUpperCase() + canal.slice(1);
+    tbody.innerHTML += `
+      <tr>
+        <td><div class="ch-source"><div class="ch-dot" style="background:${cor}"></div>${label}</div></td>
+        <td><b>${n}</b></td>
+        <td><span class="ch-trend" style="color:${cor};background:${cor}22">${pct}%</span></td>
+      </tr>`;
+  });
+}
+
+// ── RENDER LEADS KPIs ────────────────────────
+function renderLeadsKPIs(leads) {
+  const hoje    = startOf('day');
+  const semana  = startOf('week');
+  const mes     = startOf('month');
+
+  let dia=0, sem=0, mes_=0;
+  leads.forEach(l => {
+    const d = parseDate(l.data || l.date || l.created_at || l['data de criação'] || l['criado em']);
+    if (!d) return;
+    if (d >= hoje)   dia++;
+    if (d >= semana) sem++;
+    if (d >= mes)    mes_++;
+  });
+
+  document.getElementById('lp-dia').textContent = dia;
+  document.getElementById('lp-sem').textContent = sem;
+  document.getElementById('lp-mes').textContent = mes_;
+  document.getElementById('lp-dia-sub').textContent  = `${leads.length} total na planilha`;
+  document.getElementById('lp-sem-sub').textContent  = `últimos 7 dias`;
+  document.getElementById('lp-mes-sub').textContent  = `mês atual`;
+
+  document.getElementById('v-leads').textContent = leads.length;
+  document.getElementById('d-leads').textContent = `${sem} esta semana`;
+}
+
+// ── RENDER VENDAS KPIs ───────────────────────
+function renderVendasKPIs(vendas) {
+  const total = vendas.reduce((s, v) => {
+    return s + (parseFloat(String(v.valor||'0').replace(/[^\d.,]/g,'').replace(',','.')) || 0);
+  }, 0);
+
+  const ganhos = vendas.filter(v => {
+    const st = (v.status||v.etapa||'').toLowerCase();
+    return st.includes('ganho') || st.includes('fechado') || st.includes('won');
+  }).length;
+
+  const ticket = ganhos > 0 ? total / ganhos : total / (vendas.length || 1);
+
+  const conv = vendas.length > 0 ? Math.round((ganhos / vendas.length) * 100) : 0;
+
+  document.getElementById('v-fat').textContent    = fmtBRL(total);
+  document.getElementById('v-ganhos').textContent = ganhos || vendas.length;
+  document.getElementById('v-ticket').textContent = fmtBRL(Math.round(ticket));
+  document.getElementById('d-fat').textContent    = `${vendas.length} negócios`;
+  document.getElementById('d-ganhos').textContent = `${conv}% conversão`;
+}
+
+// ── LOAD DATA ────────────────────────────────
+async function loadData() {
+  document.getElementById('loading').style.display = 'flex';
+  setStatus('🔄 Buscando dados da planilha...', 'info');
+
+  try {
+    // Tenta buscar as 3 abas (ignora erro se aba não existir ainda)
+    let leads = [], vendas = [];
+
+    try { leads  = await fetchSheet(ABA_LEADS);  } catch(e) { console.warn('Aba leads não encontrada'); }
+    try { vendas = await fetchSheet(ABA_VENDAS); } catch(e) { console.warn('Aba vendas não encontrada'); }
+
+    // Se nenhuma aba tiver dados, usa a primeira aba
+    if (leads.length === 0 && vendas.length === 0) {
+      try {
+        const primeira = await fetchSheet('Sheet1');
+        if (primeira.length > 0) leads = primeira;
+      } catch(e) {}
+    }
+
+    renderLeadsKPIs(leads);
+    renderVendasKPIs(vendas.length > 0 ? vendas : leads);
+    renderSellers(vendas.length > 0 ? vendas : leads);
+    renderFunnel(leads);
+    renderCanais(leads);
+
+    const agora = new Date().toLocaleTimeString('pt-BR');
+    setStatus(`✅ Dados atualizados às ${agora} · ${leads.length} leads · ${vendas.length} vendas`, 'success');
+
+  } catch(err) {
+    console.error(err);
+    setStatus('❌ Erro ao buscar dados. Verifique se a planilha está pública (Compartilhar → Qualquer pessoa com o link).', 'error');
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+// ── INIT ─────────────────────────────────────
+loadData();
+// Atualiza automaticamente a cada 2 minutos
+setInterval(loadData, 120000);
+</script>
+</body>
+</html>
