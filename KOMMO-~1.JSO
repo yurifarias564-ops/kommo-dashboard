@@ -1,0 +1,310 @@
+{
+    "name": "Kommo → Painel (Google Sheets)",
+    "flow": [
+        {
+            "id": 1,
+            "module": "kommo:WatchLeadsStatuses",
+            "version": 1,
+            "parameters": {
+                "__IMTCONN__": null,
+                "limit": 10
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 0,
+                    "name": "Kommo — mudança de etapa do lead"
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "Reconecte sua conta Kommo aqui",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "kommo"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:kommo",
+                        "label": "Conexão Kommo",
+                        "required": true
+                    },
+                    {
+                        "name": "limit",
+                        "type": "uinteger",
+                        "label": "Limite por execução",
+                        "required": true
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "id",
+                        "type": "number",
+                        "label": "ID do lead"
+                    },
+                    {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Nome do lead"
+                    },
+                    {
+                        "name": "price",
+                        "type": "number",
+                        "label": "Valor"
+                    },
+                    {
+                        "name": "status_id",
+                        "type": "number",
+                        "label": "ID da etapa"
+                    },
+                    {
+                        "name": "responsible_user_id",
+                        "type": "number",
+                        "label": "ID do responsável"
+                    },
+                    {
+                        "name": "created_at",
+                        "type": "date",
+                        "label": "Criado em"
+                    },
+                    {
+                        "name": "updated_at",
+                        "type": "date",
+                        "label": "Atualizado em"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 2,
+            "module": "kommo:GetALead",
+            "version": 1,
+            "parameters": {
+                "__IMTCONN__": null
+            },
+            "mapper": {
+                "leadId": "{{1.id}}",
+                "with": [
+                    "contacts",
+                    "tags"
+                ]
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0,
+                    "name": "Kommo — puxar dados completos"
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "Mesma conta Kommo",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "kommo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "id": 3,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {
+                "scope": "roundtrip"
+            },
+            "mapper": {
+                "variables": [
+                    {
+                        "name": "data_formatada",
+                        "value": "{{formatDate(now; \"DD/MM/YYYY HH:mm\"; \"America/Sao_Paulo\")}}"
+                    },
+                    {
+                        "name": "vendedor_nome",
+                        "value": "{{ifempty(2.responsible_user.name; \"—\")}}"
+                    },
+                    {
+                        "name": "cliente_nome",
+                        "value": "{{ifempty(first(2._embedded.contacts[].name); ifempty(2.name; \"—\"))}}"
+                    },
+                    {
+                        "name": "valor_venda",
+                        "value": "{{ifempty(2.price; 0)}}"
+                    },
+                    {
+                        "name": "canal_origem",
+                        "value": "{{ifempty(first(2._embedded.tags[].name); \"Outras\")}}"
+                    },
+                    {
+                        "name": "etapa_atual",
+                        "value": "{{switch(2.status_id; 142; \"Ganho\"; 143; \"Perdido\"; ifempty(2.status.name; \"Lead\"))}}"
+                    }
+                ]
+            },
+            "metadata": {
+                "designer": {
+                    "x": 600,
+                    "y": 0,
+                    "name": "Padronizar campos para o painel"
+                }
+            }
+        },
+        {
+            "id": 4,
+            "module": "google-sheets:addRow",
+            "version": 4,
+            "parameters": {
+                "__IMTCONN__": null
+            },
+            "mapper": {
+                "from": "drive",
+                "mode": "select",
+                "spreadsheetId": "11I0y3bh7GkRTJdcPPBxayI6-PnhVpTkqZaCquTFFoKM",
+                "sheetId": "Página1",
+                "includesHeaders": true,
+                "insertDataOption": "INSERT_ROWS",
+                "insertUnformatted": false,
+                "valueInputOption": "USER_ENTERED",
+                "values": {
+                    "0": "{{3.data_formatada}}",
+                    "1": "{{3.vendedor_nome}}",
+                    "2": "{{3.cliente_nome}}",
+                    "3": "{{3.valor_venda}}",
+                    "4": "{{3.canal_origem}}",
+                    "5": "{{3.etapa_atual}}"
+                }
+            },
+            "metadata": {
+                "designer": {
+                    "x": 900,
+                    "y": 0,
+                    "name": "Adicionar linha no painel"
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "Reconecte sua conta Google",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google"
+                            }
+                        }
+                    },
+                    "expect": {
+                        "spreadsheetId": {
+                            "label": "KOMMO CRM"
+                        },
+                        "sheetId": {
+                            "label": "Página1"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google",
+                        "label": "Conexão Google",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "spreadsheetId",
+                        "type": "file",
+                        "label": "Planilha"
+                    },
+                    {
+                        "name": "sheetId",
+                        "type": "select",
+                        "label": "Aba"
+                    },
+                    {
+                        "name": "includesHeaders",
+                        "type": "boolean",
+                        "label": "Tabela tem cabeçalho?"
+                    },
+                    {
+                        "name": "insertDataOption",
+                        "type": "select",
+                        "label": "Método de inserção"
+                    },
+                    {
+                        "name": "valueInputOption",
+                        "type": "select",
+                        "label": "Modo de entrada"
+                    },
+                    {
+                        "name": "values",
+                        "spec": [
+                            {
+                                "name": "0",
+                                "type": "text",
+                                "label": "DATA"
+                            },
+                            {
+                                "name": "1",
+                                "type": "text",
+                                "label": "VENDEDOR"
+                            },
+                            {
+                                "name": "2",
+                                "type": "text",
+                                "label": "CLIENTE"
+                            },
+                            {
+                                "name": "3",
+                                "type": "text",
+                                "label": "VALOR"
+                            },
+                            {
+                                "name": "4",
+                                "type": "text",
+                                "label": "CANAL"
+                            },
+                            {
+                                "name": "5",
+                                "type": "text",
+                                "label": "ETAPA"
+                            }
+                        ],
+                        "type": "collection",
+                        "label": "Valores"
+                    }
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "instant": true,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        },
+        "zone": "us2.make.com",
+        "notes": [
+            {
+                "moduleIds": [],
+                "content": "<p>Cenário gerado automaticamente para alimentar o painel de vendas. <br>Antes de ativar:</p><ol><li>Reconecte a conta Kommo (módulos 1 e 2).</li><li>Reconecte a conta Google (módulo 4) e selecione a planilha <strong>KOMMO CRM</strong> e a aba <strong>Página1</strong>.</li><li>Confira o cabeçalho da planilha:<br><strong>DATA | VENDEDOR | CLIENTE | VALOR | CANAL | ETAPA</strong></li><li>Ajuste os IDs em <em>Padronizar campos</em> &rarr; <em>etapa_atual</em>: troque 142/143 pelos IDs reais das etapas <em>Ganho</em> e <em>Perdido</em> do seu funil Kommo.</li></ol>"
+            }
+        ]
+    }
+}

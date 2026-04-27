@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Painel de Vendas — Kommo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  /* =========================================================
+     CONFIGURAÇÃO DE CORES E TIPOGRAFIA
+     Layout limpo, cores neutras com destaques fortes para os
+     números, pensado para um leigo entender em 5 segundos.
+     ========================================================= */
+  :root{
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --line:#e5e9f2;
+    --text:#0f172a;
+    --muted:#64748b;
+    --primary:#4f46e5;
+    --primary-soft:#eef2ff;
+    --success:#10b981;
+    --success-soft:#ecfdf5;
+    --warn:#f59e0b;
+    --warn-soft:#fffbeb;
+    --danger:#ef4444;
+    --whats:#25d366;
+    --tiktok:#ff0050;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--primary);text-decoration:none}
+
+  /* HEADER */
+  header.app{
+    background:#fff;border-bottom:1px solid var(--line);
+    padding:18px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .logo{
+    width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px;box-shadow:var(--shadow);
+  }
+  .brand h1{font-size:18px;margin:0;letter-spacing:-.01em}
+  .brand p{margin:0;color:var(--muted);font-size:12.5px}
+  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 4px var(--success-soft)}
+  .dot.err{background:var(--danger);box-shadow:0 0 0 4px #fee2e2}
+
+  /* CONTAINER */
+  main{max-width:1280px;margin:0 auto;padding:24px 28px 60px}
+
+  /* FILTROS */
+  .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+  .filters .label{font-size:13px;color:var(--muted);margin-right:4px}
+  .pill{
+    border:1px solid var(--line);background:#fff;color:var(--text);
+    padding:9px 16px;border-radius:999px;font-size:13.5px;font-weight:500;cursor:pointer;
+    transition:all .15s ease;
+  }
+  .pill:hover{border-color:#c7cdde}
+  .pill.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(79,70,229,.25)}
+  .refresh{margin-left:auto;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .refresh button{background:none;border:0;color:var(--primary);cursor:pointer;font-weight:600;font-size:12.5px}
+
+  /* KPI CARDS */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  .kpi{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);
+    position:relative;overflow:hidden;
+  }
+  .kpi .ic{
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px;
+  }
+  .kpi h3{margin:0;font-size:13px;color:var(--muted);font-weight:500;letter-spacing:.01em;text-transform:uppercase}
+  .kpi .v{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+  .kpi .sub{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .kpi.rev .ic{background:var(--success-soft);color:var(--success)}
+  .kpi.sales .ic{background:var(--primary-soft);color:var(--primary)}
+  .kpi.leads .ic{background:#fef3c7;color:#b45309}
+  .kpi.conv .ic{background:#fce7f3;color:#be185d}
+
+  /* CARDS GERAIS */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+  .grid-3{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .card .hint{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .chart-wrap{position:relative;height:280px}
+
+  /* RANKING / TABELAS */
+  .rank{display:flex;flex-direction:column;gap:10px}
+  .row{
+    display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:12px;
+    padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #eef1f7;
+  }
+  .row .pos{
+    width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;color:var(--muted);
+  }
+  .row.top1 .pos{background:#fef3c7;border-color:#fde68a;color:#b45309}
+  .row.top2 .pos{background:#e0e7ff;border-color:#c7d2fe;color:#4338ca}
+  .row.top3 .pos{background:#fee2e2;border-color:#fecaca;color:#b91c1c}
+  .row .name{font-weight:600;font-size:14px}
+  .row .meta{font-size:12px;color:var(--muted)}
+  .row .val{font-weight:700;font-size:14px;color:var(--text)}
+  .row .bar{
+    grid-column:1 / -1;height:6px;background:#eef1f7;border-radius:999px;overflow:hidden;margin-top:6px;
+  }
+  .row .bar > span{display:block;height:100%;background:linear-gradient(90deg,#4f46e5,#7c3aed);border-radius:999px}
+
+  /* FUNIL */
+  .funnel{display:flex;flex-direction:column;gap:8px}
+  .step{
+    background:#f8fafc;border:1px solid #eef1f7;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;
+    position:relative;overflow:hidden;
+  }
+  .step .fill{position:absolute;inset:0;background:linear-gradient(90deg,rgba(79,70,229,.15),rgba(79,70,229,.05));border-radius:10px;z-index:0}
+  .step .lbl,.step .num{position:relative;z-index:1}
+  .step .lbl{font-weight:600;font-size:14px}
+  .step .num{font-weight:700}
+  .step .sub{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
+
+  /* CHIPS DE ORIGEM */
+  .source-card{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;background:#f8fafc;border:1px solid #eef1f7}
+  .source-card .ic{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:800}
+  .source-card .ic.wpp{background:var(--whats)}
+  .source-card .ic.tk{background:var(--tiktok)}
+  .source-card .ic.ot{background:#94a3b8}
+  .source-card .v{font-size:22px;font-weight:800}
+  .source-card .lbl{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+
+  /* TABELA */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;border-bottom:1px solid var(--line)}
+  td{padding:12px;border-bottom:1px solid #f1f4fb}
+  tr:last-child td{border-bottom:0}
+  td .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .badge.ganho{background:var(--success-soft);color:var(--success)}
+  .badge.lead{background:#fef3c7;color:#b45309}
+  .badge.neg{background:var(--primary-soft);color:var(--primary)}
+  .badge.perd{background:#fee2e2;color:var(--danger)}
+
+  /* ESTADOS */
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px}
+  .skeleton{background:linear-gradient(90deg,#eef1f7 0,#f8fafc 50%,#eef1f7 100%);background-size:200% 100%;animation:sh 1.4s infinite;border-radius:8px}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* RESPONSIVO */
+  @media (max-width:980px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid-2,.grid-3{grid-template-columns:1fr}
+  }
+  @media (max-width:520px){
+    main{padding:16px}
+    header.app{padding:14px 16px}
+    .kpis{grid-template-columns:1fr 1fr;gap:12px}
+    .kpi .v{font-size:22px}
+    .pill{padding:8px 12px;font-size:12.5px}
+  }
+
+  footer{
+    text-align:center;color:var(--muted);font-size:12px;margin-top:30px;padding:16px;
+  }
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand">
+    <div class="logo">K</div>
+    <div>
+      <h1>Painel de Vendas</h1>
+      <p>Atualizado automaticamente a partir do Kommo via Make</p>
+    </div>
+  </div>
+  <div class="status" id="status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">Carregando…</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- FILTROS DE PERÍODO -->
+  <div class="filters">
+    <span class="label">Período:</span>
+    <button class="pill" data-range="today">Hoje</button>
+    <button class="pill active" data-range="week">Esta semana</button>
+    <button class="pill" data-range="month">Este mês</button>
+    <button class="pill" data-range="all">Tudo</button>
+    <div class="refresh">
+      Última atualização: <strong id="updated">—</strong>
+      <button id="reload">↻ Atualizar agora</button>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpis">
+    <div class="kpi rev">
+      <div class="ic">💰</div>
+      <h3>Faturamento</h3>
+      <div class="v" id="kpi-rev">R$ 0</div>
+      <div class="sub" id="kpi-rev-sub">—</div>
+    </div>
+    <div class="kpi sales">
+      <div class="ic">🛒</div>
+      <h3>Vendas Fechadas</h3>
+      <div class="v" id="kpi-sales">0</div>
+      <div class="sub" id="kpi-sales-sub">—</div>
+    </div>
+    <div class="kpi leads">
+      <div class="ic">👥</div>
+      <h3>Leads Recebidos</h3>
+      <div class="v" id="kpi-leads">0</div>
+      <div class="sub" id="kpi-leads-sub">—</div>
+    </div>
+    <div class="kpi conv">
+      <div class="ic">🎯</div>
+      <h3>Taxa de Conversão</h3>
+      <div class="v" id="kpi-conv">0%</div>
+      <div class="sub" id="kpi-conv-sub">leads → vendas</div>
+    </div>
+  </div>
+
+  <!-- LINHA: FATURAMENTO + ORIGENS -->
+  <div class="grid-3">
+    <div class="card">
+      <h2>Faturamento ao longo do tempo</h2>
+      <div class="hint">Quanto sua empresa faturou em cada dia do período selecionado.</div>
+      <div class="chart-wrap"><canvas id="chart-rev"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Origem dos leads</h2>
+      <div class="hint">De onde estão chegando seus contatos novos.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <div class="source-card">
+          <div class="ic wpp">W</div>
+          <div style="flex:1">
+            <div class="v" id="src-wpp">0</div>
+            <div class="lbl">WhatsApp</div>
+          </div>
+          <div style="font-size:13px;color:var(--muted);font-weight:600" id="src-wpp-pct">0%</div>
+        </div>
+        <div class="source-card">
+          <div class="ic tk">T</div>
+          <div style="flex:1">
+            <div class="v" id="src-tk">0</div>
+            <div class="lbl">TikTok</div>
+          </div>
+          <div style="font-size:13px;color:var(--muted);font-weight:600" id="src-tk-pct">0%</div>
+        </div>
+        <div class="source-card">
+          <div class="ic ot">+</div>
+          <div style="flex:1">
+            <div class="v" id="src-ot">0</div>
+            <div class="lbl">Outras origens</div>
+          </div>
+          <div style="font-size:13px;color:var(--muted);font-weight:600" id="src-ot-pct">0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LINHA: VENDEDORES + FUNIL -->
+  <div class="grid-2">
+    <div class="card">
+      <h2>Ranking de vendedores</h2>
+      <div class="hint">Quem mais faturou no período selecionado.</div>
+      <div class="rank" id="sellers"></div>
+    </div>
+    <div class="card">
+      <h2>Funil de vendas</h2>
+      <div class="hint">Onde estão seus leads agora.</div>
+      <div class="funnel" id="funnel"></div>
+    </div>
+  </div>
+
+  <!-- LINHA: CLIENTES RECORRENTES + ÚLTIMAS VENDAS -->
+  <div class="grid-2">
+    <div class="card">
+      <h2>Clientes que mais compram</h2>
+      <div class="hint">Top 5 clientes por valor total comprado no período. <em>(precisa da coluna "Cliente" na planilha)</em></div>
+      <div class="rank" id="customers"></div>
+    </div>
+    <div class="card">
+      <h2>Últimas vendas registradas</h2>
+      <div class="hint">As 8 atividades mais recentes vindas do Kommo.</div>
+      <div style="overflow-x:auto">
+        <table id="recent-table">
+          <thead><tr><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Status</th><th style="text-align:right">Valor</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Dados sincronizados em tempo real via Kommo → Make → Google Sheets
+  </footer>
+</main>
+
+<script>
+/* ==========================================================
+   CONFIGURAÇÃO — APONTE PARA SUA PLANILHA DO GOOGLE SHEETS
+   ==========================================================
+   Sua planilha precisa ter UMA tabela com as colunas (em qualquer ordem):
+       DATA | VENDEDOR | CLIENTE | VALOR | CANAL | ETAPA
+
+   Para o painel ler:
+   1) Compartilhamento da planilha em "Qualquer pessoa com o link → Leitor"
+   2) Preencha SHEET_ID com o ID da sua planilha (a parte longa da URL,
+      entre /d/ e /edit)
+   3) Em SHEET_NAME, ponha o nome exato da aba (ex: "Página1")
+   Para usar dados de exemplo, deixe SHEET_ID = "DEMO".
+*/
+const SHEET_ID = "11I0y3bh7GkRTJdcPPBxayI6-PnhVpTkqZaCquTFFoKM"; // sua planilha Kommo CRM
+const SHEET_NAME = "Página1"; // ajuste se sua aba tiver outro nome
+const REFRESH_MS = 60000; // atualizar a cada 60s
+/* ========================================================== */
+const SHEET_URL = SHEET_ID === "DEMO"
+  ? "DEMO"
+  : `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+
+const fmtBRL = v => "R$ " + (v||0).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtBRL2 = v => "R$ " + (v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtNum = v => (v||0).toLocaleString("pt-BR");
+const pct = (a,b) => b? Math.round((a/b)*100) : 0;
+
+// -------- LEITURA DE DADOS --------
+async function fetchData(){
+  if (SHEET_URL === "DEMO") return generateDemoData();
+  const url = SHEET_URL + (SHEET_URL.includes("?")?"&":"?") + "_=" + Date.now();
+  const r = await fetch(url, {cache:"no-store"});
+  if (!r.ok) throw new Error("Erro ao ler planilha (" + r.status + ")");
+  const txt = await r.text();
+  const parsed = Papa.parse(txt, {header:true, skipEmptyLines:true});
+  // ignora linhas duplicadas de cabeçalho (caso o usuário tenha várias tabelas empilhadas)
+  const HEADER_TOKENS = new Set(["data","vendedor","valor","cliente","canal","etapa","status","origem","tipo"]);
+  const cleanRows = parsed.data.filter(row => {
+    const vals = Object.values(row).map(v => (v||"").toString().trim().toLowerCase());
+    const hits = vals.filter(v => HEADER_TOKENS.has(v)).length;
+    return hits < 2; // se 2+ campos batem com nomes de cabeçalho, é uma linha de header repetida
+  });
+  return cleanRows.map(normalizeRow).filter(x=>x);
+}
+
+// Aceita variações de nome de coluna (PT/EN, com/sem acento)
+function normalizeRow(r){
+  const get = (...keys)=>{
+    for (const k of keys){
+      for (const orig of Object.keys(r)){
+        const n = orig.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
+        if (n === k) return (r[orig]||"").toString().trim();
+      }
+    }
+    return "";
+  };
+  const dataStr = get("data","date","criado em","created_at","data venda","timestamp");
+  const date = parseDate(dataStr);
+  if (!date) return null;
+  const valorStr = get("valor","value","amount","price","preco");
+  const valor = parseMoney(valorStr);
+  let seller = get("vendedor","seller","responsavel","responsible","owner") || "—";
+  // se o vendedor veio como número (timestamp/ID do Make mal mapeado), trata como vazio
+  if (/^\d{6,}$/.test(seller)) seller = "—";
+  return {
+    date,
+    seller,
+    customer: get("cliente","customer","nome","name","contato") || "",
+    value: valor,
+    source: normalizeSource(get("canal","origem","source","utm source","utm_source") || ""),
+    status: normalizeStatus(get("etapa","status","stage","situacao","fase","tipo") || ""),
+  };
+}
+function parseDate(s){
+  if (!s) return null;
+  s = s.toString().trim();
+  if (!s) return null;
+  // Unix timestamp em segundos (10 dígitos) — formato que Make manda por padrão
+  if (/^\d{10}$/.test(s)) return new Date(parseInt(s,10)*1000);
+  // Unix timestamp em milissegundos (13 dígitos)
+  if (/^\d{13}$/.test(s)) return new Date(parseInt(s,10));
+  // tenta ISO
+  let d = new Date(s);
+  if (!isNaN(d)) return d;
+  // tenta dd/mm/yyyy hh:mm
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (m) {
+    const yyyy = (+m[3] < 100) ? 2000 + (+m[3]) : +m[3];
+    return new Date(yyyy, (+m[2])-1, +m[1], +m[4]||0, +m[5]||0);
+  }
+  return null;
+}
+function parseMoney(s){
+  if (!s) return 0;
+  // remove R$, espaços, e troca vírgula por ponto
+  const x = String(s).replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}\b)/g,"").replace(",",".");
+  const n = parseFloat(x);
+  return isNaN(n) ? 0 : n;
+}
+function normalizeSource(s){
+  const x = s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  if (x.includes("whats") || x.includes("wpp") || x.includes("zap")) return "WhatsApp";
+  if (x.includes("tiktok") || x.includes("tik tok") || x.includes("tt")) return "TikTok";
+  if (x.includes("insta") || x.includes("ig")) return "Instagram";
+  if (x.includes("face") || x.includes("fb")) return "Facebook";
+  if (x.includes("google") || x.includes("ads")) return "Google";
+  if (x.includes("indica")) return "Indicação";
+  return s ? (s[0].toUpperCase()+s.slice(1)) : "Outras";
+}
+function normalizeStatus(s){
+  const x = s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  if (x.includes("ganho") || x.includes("won") || x.includes("vend") || x.includes("fech")) return "Ganho";
+  if (x.includes("perd") || x.includes("lost") || x.includes("cancel")) return "Perdido";
+  if (x.includes("negoc") || x.includes("propos") || x.includes("contato")) return "Negociação";
+  if (x.includes("lead") || x.includes("novo") || x.includes("entrou")) return "Lead";
+  return s ? (s[0].toUpperCase()+s.slice(1)) : "Lead";
+}
+
+// -------- DADOS DEMO (até você plugar a planilha) --------
+function generateDemoData(){
+  const sellers = ["Pedro","Mariana","João","Lucas","Camila"];
+  const sources = ["WhatsApp","WhatsApp","WhatsApp","TikTok","TikTok","Instagram","Indicação","Google"];
+  const statuses = ["Ganho","Ganho","Ganho","Negociação","Lead","Perdido"];
+  const clients = ["Casa do João","Mercado Pão & Cia","Studio Bella","Auto Center MX","Dra. Renata","Tech4U","Ana & Filhos","Bella Boutique","Restaurante Sabor","Pet Vida","Faria & Faria","Dental Care","Studio Lumiar","Eco Materiais","Ferragens Top"];
+  const out=[];
+  const now = new Date();
+  for (let i=0;i<160;i++){
+    const daysAgo = Math.floor(Math.random()*45);
+    const d = new Date(now); d.setDate(d.getDate()-daysAgo); d.setHours(Math.floor(Math.random()*12)+8, Math.floor(Math.random()*60));
+    const status = statuses[Math.floor(Math.random()*statuses.length)];
+    out.push({
+      date:d,
+      seller:sellers[Math.floor(Math.random()*sellers.length)],
+      customer:clients[Math.floor(Math.random()*clients.length)],
+      value: status==="Ganho" ? Math.floor(Math.random()*4500)+200 : 0,
+      source:sources[Math.floor(Math.random()*sources.length)],
+      status,
+    });
+  }
+  return out;
+}
+
+// -------- FILTROS DE PERÍODO --------
+function startOf(range){
+  const d = new Date(); d.setHours(0,0,0,0);
+  if (range==="today") return d;
+  if (range==="week"){ const dd=new Date(d); dd.setDate(d.getDate()-d.getDay()); return dd; }
+  if (range==="month"){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+  return new Date(0);
+}
+function filterByRange(rows, range){
+  const start = startOf(range);
+  return rows.filter(r => r.date >= start);
+}
+
+// -------- RENDER --------
+let state = { rows:[], range:"week", chartRev:null };
+
+function render(){
+  const rows = filterByRange(state.rows, state.range);
+  const won = rows.filter(r=>r.status==="Ganho");
+  const revenue = won.reduce((s,r)=>s+r.value,0);
+  const leads = rows.length;
+  const conv = pct(won.length, leads);
+
+  // KPIs
+  document.getElementById("kpi-rev").textContent = fmtBRL(revenue);
+  document.getElementById("kpi-rev-sub").textContent = won.length + " vendas no período";
+  document.getElementById("kpi-sales").textContent = fmtNum(won.length);
+  document.getElementById("kpi-sales-sub").textContent = won.length ? "ticket médio " + fmtBRL(revenue/won.length) : "sem vendas ainda";
+  document.getElementById("kpi-leads").textContent = fmtNum(leads);
+  document.getElementById("kpi-leads-sub").textContent = leads ? "novos contatos no período" : "—";
+  document.getElementById("kpi-conv").textContent = conv + "%";
+
+  // Origens
+  const wpp = rows.filter(r=>r.source==="WhatsApp").length;
+  const tk = rows.filter(r=>r.source==="TikTok").length;
+  const ot = leads - wpp - tk;
+  document.getElementById("src-wpp").textContent = fmtNum(wpp);
+  document.getElementById("src-tk").textContent = fmtNum(tk);
+  document.getElementById("src-ot").textContent = fmtNum(ot);
+  document.getElementById("src-wpp-pct").textContent = pct(wpp,leads)+"%";
+  document.getElementById("src-tk-pct").textContent = pct(tk,leads)+"%";
+  document.getElementById("src-ot-pct").textContent = pct(ot,leads)+"%";
+
+  renderRevChart(won);
+  renderSellers(won);
+  renderFunnel(rows);
+  renderCustomers(won);
+  renderRecent(rows);
+}
+
+function renderRevChart(won){
+  const ctx = document.getElementById("chart-rev").getContext("2d");
+  // agrupa por dia
+  const map = new Map();
+  won.forEach(r=>{
+    const k = r.date.toISOString().slice(0,10);
+    map.set(k,(map.get(k)||0)+r.value);
+  });
+  // preencher dias do range
+  const start = startOf(state.range);
+  const end = new Date(); end.setHours(0,0,0,0);
+  const labels=[], data=[];
+  if (state.range==="all" && map.size){
+    const keys = [...map.keys()].sort();
+    keys.forEach(k=>{labels.push(formatLabel(k));data.push(map.get(k))});
+  } else {
+    const cur = new Date(start);
+    while (cur <= end){
+      const k = cur.toISOString().slice(0,10);
+      labels.push(formatLabel(k));
+      data.push(map.get(k)||0);
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+  if (state.chartRev) state.chartRev.destroy();
+  state.chartRev = new Chart(ctx,{
+    type:"line",
+    data:{labels, datasets:[{
+      label:"Faturamento",
+      data,
+      borderColor:"#4f46e5",
+      backgroundColor:(c)=>{
+        const g = c.chart.ctx.createLinearGradient(0,0,0,260);
+        g.addColorStop(0,"rgba(79,70,229,.25)");
+        g.addColorStop(1,"rgba(79,70,229,0)");
+        return g;
+      },
+      fill:true,
+      tension:.35,
+      pointRadius:3,
+      pointBackgroundColor:"#4f46e5",
+      borderWidth:2.5,
+    }]},
+    options:{
+      maintainAspectRatio:false, responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>fmtBRL2(c.parsed.y)}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{color:"#64748b",font:{size:11}}},
+        y:{grid:{color:"#eef1f7"}, ticks:{color:"#64748b",font:{size:11}, callback:v=>fmtBRL(v)}}
+      }
+    }
+  });
+}
+function formatLabel(iso){
+  const d = new Date(iso+"T00:00");
+  return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});
+}
+
+function renderSellers(won){
+  const map = new Map();
+  won.forEach(r=>{
+    if (!map.has(r.seller)) map.set(r.seller,{value:0,count:0});
+    const x = map.get(r.seller); x.value += r.value; x.count++;
+  });
+  const arr = [...map.entries()].map(([n,v])=>({name:n,...v})).sort((a,b)=>b.value-a.value);
+  const max = arr.length ? arr[0].value : 0;
+  const root = document.getElementById("sellers"); root.innerHTML = "";
+  if (!arr.length){ root.innerHTML = '<div class="empty">Sem vendas registradas no período.</div>'; return; }
+  arr.slice(0,8).forEach((s,i)=>{
+    const cls = i===0?"top1":i===1?"top2":i===2?"top3":"";
+    const div = document.createElement("div");
+    div.className = "row " + cls;
+    div.innerHTML = `
+      <div class="pos">${i+1}</div>
+      <div>
+        <div class="name">${escapeHtml(s.name)}</div>
+        <div class="meta">${s.count} venda${s.count!==1?"s":""}</div>
+      </div>
+      <div class="val">${fmtBRL(s.value)}</div>
+      <div class="bar"><span style="width:${max?(s.value/max*100):0}%"></span></div>
+    `;
+    root.appendChild(div);
+  });
+}
+
+function renderFunnel(rows){
+  const order = ["Lead","Negociação","Ganho","Perdido"];
+  const counts = order.map(s => rows.filter(r=>r.status===s).length);
+  const total = counts.reduce((a,b)=>a+b,0);
+  const root = document.getElementById("funnel"); root.innerHTML="";
+  order.forEach((s,i)=>{
+    const c = counts[i];
+    const w = total ? (c/Math.max(...counts)*100) : 0;
+    const div = document.createElement("div");
+    div.className="step";
+    div.innerHTML = `
+      <div class="fill" style="width:${w}%"></div>
+      <div class="lbl">${s}<span class="sub">${pct(c,total)}% dos leads</span></div>
+      <div class="num">${c}</div>
+    `;
+    root.appendChild(div);
+  });
+}
+
+function renderCustomers(won){
+  const map = new Map();
+  won.forEach(r=>{
+    if (!r.customer) return;
+    if (!map.has(r.customer)) map.set(r.customer,{value:0,count:0});
+    const x = map.get(r.customer); x.value+=r.value; x.count++;
+  });
+  const arr=[...map.entries()].map(([n,v])=>({name:n,...v}))
+    .filter(x=>x.count>=1).sort((a,b)=>b.value-a.value);
+  const root = document.getElementById("customers"); root.innerHTML="";
+  if (!arr.length){ root.innerHTML = '<div class="empty">Adicione a coluna "Cliente" na sua planilha para ver quem mais compra de você.</div>'; return; }
+  const max = arr[0].value;
+  arr.slice(0,5).forEach((c,i)=>{
+    const cls = i===0?"top1":i===1?"top2":i===2?"top3":"";
+    const div = document.createElement("div");
+    div.className = "row " + cls;
+    div.innerHTML = `
+      <div class="pos">${i+1}</div>
+      <div>
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="meta">${c.count} compra${c.count!==1?"s":""} ${c.count>=2?"<span style='color:#10b981;font-weight:600'>• cliente recorrente</span>":""}</div>
+      </div>
+      <div class="val">${fmtBRL(c.value)}</div>
+      <div class="bar"><span style="width:${(c.value/max*100)}%"></span></div>
+    `;
+    root.appendChild(div);
+  });
+}
+
+function renderRecent(rows){
+  const tb = document.querySelector("#recent-table tbody");
+  tb.innerHTML="";
+  const sorted = [...rows].sort((a,b)=>b.date-a.date).slice(0,8);
+  if (!sorted.length){ tb.innerHTML = '<tr><td colspan="5" class="empty">Sem registros no período.</td></tr>'; return; }
+  sorted.forEach(r=>{
+    const tr = document.createElement("tr");
+    const klass = r.status==="Ganho"?"ganho":r.status==="Perdido"?"perd":r.status==="Negociação"?"neg":"lead";
+    tr.innerHTML = `
+      <td>${r.date.toLocaleDateString("pt-BR")} <span style="color:#94a3b8">${r.date.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span></td>
+      <td>${escapeHtml(r.customer||"—")}</td>
+      <td>${escapeHtml(r.seller)}</td>
+      <td><span class="badge ${klass}">${r.status}</span></td>
+      <td style="text-align:right;font-weight:600">${r.value? fmtBRL(r.value):"—"}</td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c])}
+
+// -------- BOOT --------
+async function load(){
+  try{
+    setStatus("loading");
+    state.rows = await fetchData();
+    setStatus("ok");
+    document.getElementById("updated").textContent = new Date().toLocaleTimeString("pt-BR");
+    render();
+  }catch(e){
+    setStatus("err", e.message);
+  }
+}
+function setStatus(s, msg){
+  const dot = document.getElementById("status-dot");
+  const txt = document.getElementById("status-text");
+  if (s==="loading"){ dot.className="dot"; txt.textContent="Carregando dados…"; }
+  else if (s==="ok"){
+    dot.className="dot";
+    txt.textContent = SHEET_URL==="DEMO" ? "Modo demo (dados de exemplo)" : "Conectado ao Google Sheets";
+  }
+  else { dot.className="dot err"; txt.textContent = "Erro: " + (msg||"falha na leitura"); }
+}
+
+document.querySelectorAll(".pill[data-range]").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".pill[data-range]").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    state.range = b.dataset.range;
+    render();
+  });
+});
+document.getElementById("reload").addEventListener("click",load);
+
+load();
+setInterval(load, REFRESH_MS);
+</script>
+</body>
+</html>
+`;
+    tb.appendChild
